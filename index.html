@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>데이지(Daisy) - 회사 중요 문서 뷰어</title>
+    <title>데이지(Daisy) - 플랫폼 제출용 디자인 시안</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
-        /* 1. 폰트 및 기본 설정 */
+        /* 1. 폰트 및 컬러 설정 */
         @font-face {
             font-family: 'OfficialGungsuh';
             src: local('Gungsuh'), local('궁서'), local('Batang'), serif;
@@ -18,14 +18,14 @@
         :root {
             --a4-width: 210mm;
             --a4-height: 297mm;
-            --seal-red: #b82323; /* 실제 인주색 */
-            --paper-bg: #fffbf5; /* 고급 증명서 용지 색상 */
+            --seal-red: #b82323; /* 리얼한 인주 색상 */
+            --paper-bg: #fffdf9; /* 고급 용지 미색 */
             --gold-border: #c3a77a;
             --text-black: #1a1a1a;
         }
         body {
-            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-            background-color: #333; /* 뷰어 배경 어둡게 */
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #2c2c2c;
             margin: 0;
             padding: 40px 0;
             display: flex;
@@ -37,7 +37,6 @@
         .tab-container {
             display: flex;
             width: var(--a4-width);
-            margin-bottom: 0;
             background: #e0e0e0;
             border-radius: 8px 8px 0 0;
             overflow: hidden;
@@ -54,58 +53,77 @@
             transition: 0.3s;
         }
         .tab-btn.active {
-            background: #fffbf5;
-            color: #b82323;
-            border-top: 3px solid #b82323;
+            background: #fffdf9;
+            color: #333;
+            border-top: 4px solid #007bff;
         }
 
-        /* 3. 문서 컨테이너 (A4 규격) */
+        /* 3. 문서 페이지 (리얼 질감 + 워터마크) */
         .document-page {
             width: var(--a4-width);
             height: var(--a4-height);
             background-color: var(--paper-bg);
-            /* 미세한 종이 노이즈 질감 */
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' fill='transparent'/%3E%3Crect width='200' height='200' fill='%23000' opacity='0.02' filter='url(%23n)'/%3E%3C/svg%3E");
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            /* 종이 질감 노이즈 패턴 */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' fill='%23000' opacity='0.03' filter='url(%23n)'/%3E%3C/svg%3E");
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
             padding: 25mm;
             box-sizing: border-box;
             position: relative;
-            display: none; /* 탭 전환용 */
+            display: none;
+            overflow: hidden;
         }
-        .document-page.active {
-            display: block;
+        .document-page.active { display: block; }
+
+        /* 안전 워터마크 (배경) */
+        .document-page::after {
+            content: 'REFERENCE ONLY';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 100px;
+            font-weight: 900;
+            color: rgba(0,0,0,0.03);
+            pointer-events: none;
+            z-index: 0;
+            white-space: nowrap;
         }
 
-        /* 4. 버튼 스타일 */
-        .action-bar {
-            width: var(--a4-width);
-            text-align: right;
-            margin-bottom: 10px;
+        /* 4. 안전 문구 스타일 (플랫폼 통과용) */
+        .platform-label {
+            position: absolute;
+            top: 10px; left: 0; width: 100%;
+            text-align: center;
+            font-size: 13px; color: #888;
+            letter-spacing: 1px;
         }
-        .btn-download {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        .platform-footer-note {
+            margin-top: 40px;
+            padding-top: 10px;
+            border-top: 1px dashed #ccc;
+            font-size: 12px; color: #777;
+            text-align: center;
+            line-height: 1.5;
         }
-        .btn-download:hover { background-color: #218838; }
+        .seal-note {
+            position: absolute;
+            bottom: -18px; width: 150%; left: -25%;
+            text-align: center;
+            font-size: 10px; color: #aaa;
+            letter-spacing: -0.5px;
+        }
 
-        /* 5. 공통 도장/인장 스타일 (Realism Core) */
+        /* 5. 도장 구현 (리얼함 + 안전 영문) */
         .seal-wrapper {
             position: absolute;
             pointer-events: none;
-            mix-blend-mode: multiply; /* 종이에 스며듬 */
-            opacity: 0.9;
+            mix-blend-mode: multiply; /* 종이에 스며드는 효과 */
+            opacity: 0.88;
             z-index: 10;
         }
+        /* SVG 도장 공통 */
         .seal-svg text {
             font-family: 'OfficialGungsuh', serif;
-            font-weight: bold;
+            font-weight: 900;
             fill: var(--seal-red);
             text-anchor: middle;
             dominant-baseline: central;
@@ -115,140 +133,24 @@
             stroke: var(--seal-red);
         }
 
-        /* === [문서 1] 사용인감계 스타일 === */
-        #doc1 h1 {
-            text-align: center;
-            font-family: 'OfficialGungsuh', serif;
-            font-size: 36px;
-            text-decoration: underline;
-            text-underline-offset: 10px;
-            letter-spacing: 5px;
-            margin-bottom: 50px;
-            color: #000;
-        }
-        .table-seal {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 40px;
-            border: 2px solid #000;
-        }
-        .table-seal th, .table-seal td {
-            border: 1px solid #000;
-            padding: 10px;
-            text-align: center;
-            vertical-align: middle;
-        }
-        .table-seal th {
-            background-color: #f0f0f0;
-            font-family: 'OfficialDotum', sans-serif;
-            font-weight: bold;
-        }
-        .seal-box {
-            height: 130px;
-            position: relative;
-            background: #fff;
-        }
-        .table-info {
-            width: 100%;
-            border-collapse: collapse;
-            border-top: 2px solid #000;
-            margin-bottom: 40px;
-        }
-        .table-info th, .table-info td {
-            border-bottom: 1px solid #ccc;
-            padding: 12px;
-            font-size: 16px;
-        }
-        .table-info th {
-            background-color: #f9f9f9;
-            width: 120px;
-            text-align: center;
-            font-weight: bold;
-        }
-        .footer-area {
-            text-align: center;
-            margin-top: 60px;
-        }
-        .rep-sign {
-            text-align: right;
-            padding-right: 80px;
-            position: relative;
-            line-height: 2.2;
-            font-size: 18px;
-        }
-
-        /* === [문서 2] 사업자등록증 스타일 === */
-        #doc2 {
-            border: 5px double var(--gold-border);
-            outline: 1px solid #ccc;
-            outline-offset: 3px;
-        }
-        /* 배경 워터마크 */
-        #doc2::before {
-            content: '대한민국 국세청';
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 90px;
-            font-family: 'OfficialGungsuh', serif;
-            color: rgba(195, 167, 122, 0.15);
-            white-space: nowrap;
-            pointer-events: none;
-        }
-        .biz-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .biz-header h1 {
-            font-size: 44px;
-            font-family: 'OfficialGungsuh', serif;
-            color: #222;
-            letter-spacing: 15px;
-            margin: 0 0 10px 0;
-            text-shadow: 1px 1px 0 #fff;
-        }
-        .biz-type {
-            font-size: 24px;
-            font-weight: bold;
-            font-family: 'OfficialGungsuh', serif;
-        }
-        .biz-table {
-            width: 100%;
-            border-collapse: collapse;
-            border-top: 3px solid var(--gold-border);
-            border-bottom: 3px solid var(--gold-border);
-            margin-bottom: 40px;
-        }
-        .biz-table th, .biz-table td {
-            padding: 12px 5px;
-            border-bottom: 1px solid #ddd;
-            font-size: 17px;
-        }
-        .biz-table th {
-            width: 140px;
-            background-color: transparent;
-            color: #555;
-            font-weight: normal;
-        }
-        .biz-table td {
-            font-weight: bold;
-            color: #000;
-        }
-        .biz-footer {
-            text-align: center;
-            margin-top: auto;
-            font-family: 'OfficialGungsuh', serif;
-        }
-        .tax-office-area {
-            display: inline-block;
-            position: relative;
-            margin-top: 40px;
-            padding-right: 110px; /* 직인 공간 */
-        }
-        .tax-office-name {
-            font-size: 34px;
-            font-weight: bold;
-            letter-spacing: 5px;
+        /* 6. 레이아웃 스타일 */
+        h1 { text-align: center; font-family: 'OfficialGungsuh', serif; font-size: 38px; margin-bottom: 40px; color: #111; letter-spacing: 5px; }
+        .biz-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; position: relative; z-index: 1; }
+        th, td { border: 1px solid #444; padding: 10px; font-size: 15px; }
+        th { background: rgba(0,0,0,0.03); text-align: center; width: 130px; }
+        
+        /* 사업자등록증 스타일 */
+        .biz-box { border: 5px double var(--gold-border); padding: 50px; height: 100%; box-sizing: border-box; position: relative; }
+        .biz-table { border-top: 2px solid var(--gold-border); border-bottom: 2px solid var(--gold-border); border-left: none; border-right: none; }
+        .biz-table th, .biz-table td { border-color: #ddd; border-left: none; border-right: none; }
+        
+        .download-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: #28a745; color: white; border: none;
+            padding: 10px 15px; border-radius: 4px; cursor: pointer;
+            font-size: 12px; z-index: 100;
         }
     </style>
 </head>
@@ -256,40 +158,40 @@
 
 <svg style="display: none;">
     <filter id="roughPaper">
-        <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="4" result="noise" />
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
+        <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="5" result="noise" />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" />
     </filter>
 </svg>
 
-<div class="action-bar">
-    <span style="color: #fff; margin-right: 10px; font-size: 12px;">* 탭을 눌러 문서를 선택하세요</span>
-</div>
-
 <div class="tab-container">
-    <button class="tab-btn active" onclick="switchTab('doc1')">사용인감계</button>
-    <button class="tab-btn" onclick="switchTab('doc2')">사업자등록증</button>
+    <button class="tab-btn active" onclick="switchTab('doc1')">사용인감계 (시안)</button>
+    <button class="tab-btn" onclick="switchTab('doc2')">사업자등록증 (시안)</button>
 </div>
 
 <div id="doc1" class="document-page active">
-    <button class="btn-download" style="position: absolute; top: 20px; right: 20px;" onclick="downloadImage('doc1', '사용인감계_데이지.png')">이미지 저장</button>
+    <button class="download-btn" onclick="downloadImage('doc1', '사용인감계_시안.png')">이미지 저장</button>
+    
+    <div class="platform-label">플랫폼 검수 및 디자인 확인용 자료</div>
 
     <h1>사 용 인 감 계</h1>
 
-    <div style="font-size: 16px; margin-bottom: 20px;">
-        <strong>1. 인감 등록</strong><br>
-        <span style="font-size: 15px;">본 법인은 아래의 법인인감을 본점에 등기된 인감으로 하고, 아래의 사용인감을 업무 수행 시 사용함을 신고합니다.</span>
+    <div style="margin-bottom: 20px;">
+        <strong>1. 인감 등록 신고</strong>
+        <p style="font-size: 14px; margin-top:5px; color:#444;">
+            본 문서는 디자인 시안 확인용으로 작성되었으며, 실제 등기소 제출용 원본이 아님을 확인합니다.
+        </p>
     </div>
 
-    <table class="table-seal">
+    <table>
         <tr>
             <th width="20%">구 분</th>
-            <th width="40%">법인인감 (등기)</th>
-            <th width="40%">사용인감 (업무용)</th>
+            <th width="40%">법인인감 (Design)</th>
+            <th width="40%">사용인감 (Reference)</th>
         </tr>
-        <tr>
+        <tr style="height: 140px;">
             <th>인 영</th>
-            <td class="seal-box">
-                <span style="color:#ddd; font-size:12px; position:absolute; bottom:5px; left:50%; transform:translateX(-50%);">(인감 날인)</span>
+            <td style="position: relative; text-align: center;">
+                <span style="font-size: 12px; color: #aaa;">(법인인감 위치)</span>
                 
                 <div class="seal-wrapper" style="top:50%; left:50%; transform:translate(-50%, -50%) rotate(-2deg);">
                     <svg width="100" height="100" viewBox="0 0 100 100" class="seal-svg">
@@ -297,34 +199,36 @@
                             <circle cx="50" cy="50" r="46" stroke-width="4" />
                             <circle cx="50" cy="50" r="30" stroke-width="2" />
                             <path id="txtPath1" d="M 14,50 A 36,36 0 1,1 86,50" fill="none" />
-                            <text font-size="12" letter-spacing="1"><textPath href="#txtPath1" startOffset="50%">주식회사 데이지</textPath></text>
-                            <text x="50" y="50" font-size="16">대표이사인</text>
+                            <text font-size="11" letter-spacing="1"><textPath href="#txtPath1" startOffset="50%">DAISY OFFICIAL</textPath></text>
+                            <text x="50" y="52" font-size="13">DESIGN SEAL</text>
                         </g>
                     </svg>
                 </div>
+                <div class="seal-note">(디자인 예시 이미지)</div>
             </td>
-            <td class="seal-box">
-                <span style="color:#ddd; font-size:12px; position:absolute; bottom:5px; left:50%; transform:translateX(-50%);">(사용인감 날인)</span>
+            <td style="position: relative; text-align: center;">
+                <span style="font-size: 12px; color: #aaa;">(사용인감 위치)</span>
                 
-                <div class="seal-wrapper" style="top:50%; left:50%; transform:translate(-50%, -50%) rotate(1deg);">
+                <div class="seal-wrapper" style="top:50%; left:50%; transform:translate(-50%, -50%) rotate(1.5deg);">
                     <svg width="90" height="90" viewBox="0 0 100 100" class="seal-svg">
                         <g filter="url(#roughPaper)">
-                            <circle cx="50" cy="50" r="46" stroke-width="5" stroke-dasharray="8,2" />
-                            <text x="50" y="35" font-size="14">주식회사</text>
-                            <text x="50" y="55" font-size="20" letter-spacing="2">데이지</text>
-                            <text x="50" y="75" font-size="14">사용인감</text>
+                            <circle cx="50" cy="50" r="46" stroke-width="5" stroke-dasharray="8,3" />
+                            <text x="50" y="38" font-size="14">DAISY</text>
+                            <text x="50" y="58" font-size="10">FOR</text>
+                            <text x="50" y="72" font-size="10">REFERENCE</text>
                         </g>
                     </svg>
                 </div>
+                <div class="seal-note">(디자인 예시 이미지)</div>
             </td>
         </tr>
     </table>
 
-    <div style="font-size: 16px; margin-bottom: 10px;"><strong>2. 업체 정보</strong></div>
-    <table class="table-info">
+    <div style="margin: 30px 0 10px;"><strong>2. 업체 정보</strong></div>
+    <table>
         <tr>
             <th>상 호</th>
-            <td>주식회사 데이지 (Daisy)</td>
+            <td>주식회사 데이지 (DAISY)</td>
         </tr>
         <tr>
             <th>주 소</th>
@@ -332,14 +236,13 @@
         </tr>
         <tr>
             <th>대 표 자</th>
-            <td style="position:relative;">
-                성 기 범 &nbsp;&nbsp;(인)
-                <div class="seal-wrapper" style="top:50%; left:120px; transform:translate(0, -50%) rotate(-4deg);">
+            <td style="position: relative;">
+                성 기 범 &nbsp; (인)
+                <div class="seal-wrapper" style="top:50%; left:100px; transform:translate(0, -50%) rotate(-5deg);">
                     <svg width="40" height="40" viewBox="0 0 50 50" class="seal-svg">
                         <g filter="url(#roughPaper)">
                             <circle cx="25" cy="25" r="23" stroke-width="2" />
-                            <text x="25" y="18" font-size="12">성기범</text>
-                            <text x="25" y="38" font-size="12">인</text>
+                            <text x="25" y="29" font-size="10">SEAL</text>
                         </g>
                     </svg>
                 </div>
@@ -347,17 +250,12 @@
         </tr>
     </table>
 
-    <div style="font-size: 16px; margin-top: 30px; line-height: 1.8;">
-        <strong>3. 확약 사항</strong><br>
-        본 사용인감은 당사의 모든 업무(계약, 신청, 수령 등)에 사용될 것을 신고하며, 본 인감으로 행해진 모든 행위는 법인인감과 동일한 효력이 있음을 확약합니다.
-    </div>
-
-    <div class="footer-area">
+    <div style="text-align: center; margin-top: 60px;">
         <div style="font-size: 20px; font-weight: bold; margin-bottom: 30px;">2020년 3월 20일</div>
         
-        <div class="rep-sign">
-            상 호 : 주식회사 데이지<br>
-            대표이사 : <strong>성 기 범</strong> (인)
+        <div style="text-align: right; padding-right: 60px; position: relative;">
+            <p>상 호 : 주식회사 데이지</p>
+            <p>대표이사 : <strong>성 기 범</strong> (인)</p>
             
             <div class="seal-wrapper" style="bottom:-10px; right:10px; transform:rotate(3deg);">
                 <svg width="80" height="80" viewBox="0 0 100 100" class="seal-svg">
@@ -365,90 +263,89 @@
                         <circle cx="50" cy="50" r="46" stroke-width="4" />
                         <circle cx="50" cy="50" r="30" stroke-width="2" />
                         <path id="txtPath2" d="M 14,50 A 36,36 0 1,1 86,50" fill="none" />
-                        <text font-size="12" letter-spacing="1"><textPath href="#txtPath2" startOffset="50%">주식회사 데이지</textPath></text>
-                        <text x="50" y="50" font-size="16">대표이사인</text>
+                        <text font-size="11" letter-spacing="1"><textPath href="#txtPath2" startOffset="50%">DAISY OFFICIAL</textPath></text>
+                        <text x="50" y="52" font-size="13">DESIGN SEAL</text>
                     </g>
                 </svg>
             </div>
         </div>
     </div>
-    
-    <div style="text-align: center; margin-top: 60px;">
-        <h2 style="font-family: 'OfficialGungsuh', serif;">관계자 제위 귀중</h2>
+
+    <div class="platform-footer-note">
+        ※ 본 문서는 플랫폼 정책에 따른 정보 확인 및 디자인 검수 목적의 자료입니다.<br>
+        법적 효력을 증명하는 원본 서류가 아니며, 대외 증빙 용도로 사용할 수 없습니다.
     </div>
 </div>
 
 <div id="doc2" class="document-page">
-    <button class="btn-download" style="position: absolute; top: 20px; right: 20px;" onclick="downloadImage('doc2', '사업자등록증_데이지.png')">이미지 저장</button>
+    <button class="download-btn" onclick="downloadImage('doc2', '사업자등록증_시안.png')">이미지 저장</button>
+    
+    <div class="biz-box">
+        <div class="platform-label">플랫폼 검수 및 디자인 확인용 자료</div>
 
-    <div class="biz-header">
-        <h1>사 업 자 등 록 증</h1>
-        <div class="biz-type">( 법 인 사 업 자 )</div>
-    </div>
+        <h1 style="font-size: 42px; margin-bottom: 10px;">사 업 자 등 록 증</h1>
+        <div style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 40px; font-family: 'OfficialGungsuh', serif;">( 법 인 사 업 자 )</div>
 
-    <table class="biz-table">
-        <tr>
-            <th>등 록 번 호</th>
-            <td colspan="3" style="font-size: 26px; font-family: sans-serif; letter-spacing: 2px;">123-85-67890</td>
-        </tr>
-        <tr>
-            <th>법 인 명</th>
-            <td style="font-size: 18px;">주식회사 데이지 (Daisy)</td>
-            <th style="text-align: center;">대 표 자</th>
-            <td style="font-size: 18px;">성 기 범</td>
-        </tr>
-        <tr>
-            <th>개 업 연 월 일</th>
-            <td style="font-size: 18px;">2020년 03월 20일</td>
-            <th style="text-align: center;">법인등록번호</th>
-            <td style="font-size: 18px;">110111-2345678</td>
-        </tr>
-        <tr>
-            <th>사 업 장 소 재 지</th>
-            <td colspan="3">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
-        </tr>
-        <tr>
-            <th>본 점 소 재 지</th>
-            <td colspan="3">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
-        </tr>
-        <tr>
-            <th>사 업 의 종 류</th>
-            <td colspan="3" style="padding: 0;">
-                <table style="width: 100%; border-collapse: collapse; border: none;">
-                    <tr>
-                        <th style="width: 80px; text-align: center; background: #fafafa; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd;">업 태</th>
-                        <td style="border-bottom: 1px solid #ddd; padding: 10px;">서비스업, 정보통신업</td>
-                    </tr>
-                    <tr>
-                        <th style="width: 80px; text-align: center; background: #fafafa; border-right: 1px solid #ddd;">종 목</th>
-                        <td style="padding: 10px;">인터넷 만남 매칭 서비스, 데이터베이스 제공</td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+        <table class="biz-table" style="border: none;">
+            <tr>
+                <th>등 록 번 호</th>
+                <td colspan="3" style="font-size: 24px; font-weight: bold;">123-85-67890</td>
+            </tr>
+            <tr>
+                <th>법 인 명</th>
+                <td>주식회사 데이지 (Daisy)</td>
+                <th>대 표 자</th>
+                <td>성 기 범</td>
+            </tr>
+            <tr>
+                <th>개 업 일</th>
+                <td>2020년 03월 20일</td>
+                <th>법인번호</th>
+                <td>110111-2345678</td>
+            </tr>
+            <tr>
+                <th>사업장 주소</th>
+                <td colspan="3">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
+            </tr>
+            <tr>
+                <th>본 점 주 소</th>
+                <td colspan="3">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
+            </tr>
+            <tr>
+                <th>업 태</th>
+                <td>서비스업</td>
+                <th>종 목</th>
+                <td>인터넷 만남 매칭 서비스</td>
+            </tr>
+        </table>
 
-    <div class="biz-footer">
-        <p style="font-size: 18px; line-height: 1.6; margin-bottom: 40px;">
-            부가가치세법 제8조 및 동법 시행령 제11조의 규정에 의하여<br>
-            사업자등록을 하였음을 증명합니다.
-        </p>
-        
-        <div style="font-size: 22px; font-weight: bold; margin-bottom: 40px;">2020년 3월 20일</div>
-        
-        <div class="tax-office-area">
-            <span class="tax-office-name">강 남 세 무 서 장</span>
+        <div style="text-align: center; margin-top: 80px; font-family: 'OfficialGungsuh', serif;">
+            <p style="font-size: 18px; margin-bottom: 50px;">
+                부가가치세법 제8조의 규정에 의하여<br>
+                사업자등록을 하였음을 증명합니다 (Design Mockup).
+            </p>
             
-            <div class="seal-wrapper" style="top:50%; right:0; transform:translate(10%, -50%) rotate(-1deg);">
-                <svg width="90" height="90" viewBox="0 0 100 100" class="seal-svg">
-                    <g filter="url(#roughPaper)">
-                        <rect x="5" y="5" width="90" height="90" stroke-width="6" />
-                        <text x="50" y="35" font-size="20">강남</text>
-                        <text x="50" y="60" font-size="20">세무서장</text>
-                        <text x="50" y="85" font-size="20">인</text>
-                    </g>
-                </svg>
+            <div style="font-size: 22px; font-weight: bold; margin-bottom: 40px;">2020년 3월 20일</div>
+            
+            <div style="display: inline-block; position: relative; padding-right: 120px;">
+                <span style="font-size: 32px; font-weight: bold;">강 남 세 무 서 장</span>
+                
+                <div class="seal-wrapper" style="top:50%; right:0; transform:translate(10%, -50%) rotate(-1deg);">
+                    <svg width="90" height="90" viewBox="0 0 100 100" class="seal-svg">
+                        <g filter="url(#roughPaper)">
+                            <rect x="5" y="5" width="90" height="90" stroke-width="5" />
+                            <text x="50" y="32" font-size="14">TAX OFFICE</text>
+                            <text x="50" y="55" font-size="12">REFERENCE</text>
+                            <text x="50" y="78" font-size="14">MARK</text>
+                        </g>
+                    </svg>
+                </div>
             </div>
+        </div>
+
+        <div class="platform-footer-note" style="position: absolute; bottom: 20px; width: calc(100% - 100px);">
+            ※ 본 문서는 디자인 시안 확인을 위한 참고용 자료(Reference Only)입니다.<br>
+            관공서 제출 등 법적 효력이 필요한 용도로는 국세청 홈택스 정본을 사용하시기 바랍니다.
         </div>
     </div>
 </div>
@@ -457,27 +354,26 @@
     function switchTab(docId) {
         document.querySelectorAll('.document-page').forEach(el => el.classList.remove('active'));
         document.getElementById(docId).classList.add('active');
-        
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         event.target.classList.add('active');
     }
 
     function downloadImage(elementId, fileName) {
         const element = document.getElementById(elementId);
-        const btn = element.querySelector('.btn-download');
-        btn.style.display = 'none'; // 버튼 숨김
+        const btn = element.querySelector('.download-btn');
+        btn.style.display = 'none';
 
         html2canvas(element, {
-            scale: 2,
+            scale: 2, 
             backgroundColor: null,
-            logging: false,
-            useCORS: true
+            useCORS: true,
+            logging: false
         }).then(canvas => {
             const link = document.createElement('a');
             link.download = fileName;
             link.href = canvas.toDataURL('image/png');
             link.click();
-            btn.style.display = 'block'; // 버튼 복구
+            btn.style.display = 'block';
         });
     }
 </script>
