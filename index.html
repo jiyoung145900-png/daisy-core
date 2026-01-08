@@ -3,193 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>데이지(Daisy) 통합 문서 뷰어</title>
+    <title>데이지(Daisy) 통합 문서 편집기</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         /* === 1. 핵심: 반응형 뷰어 엔진 === */
         body {
             margin: 0;
-            background-color: #2b2b2b; /* 몰입감 있는 어두운 배경 */
+            background-color: #2b2b2b;
             font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            overflow-x: hidden; /* 가로 스크롤 방지 */
+            overflow-x: hidden;
         }
 
-        /* 컨트롤 패널 (상단 고정) */
+        /* 컨트롤 패널 */
         .control-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 15px;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            z-index: 1000;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            position: fixed; top: 0; left: 0; width: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+            padding: 15px; display: flex; justify-content: center; gap: 10px;
+            z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            color: white; align-items: center;
         }
-
+        .help-text { font-size: 13px; color: #aaa; margin-right: 20px; }
         .tab-btn {
-            background: #444;
-            color: #ddd;
-            border: 1px solid #666;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 5px;
-            font-weight: bold;
-            transition: 0.2s;
+            background: #444; color: #ddd; border: 1px solid #666;
+            padding: 10px 20px; cursor: pointer; border-radius: 5px;
+            font-weight: bold; transition: 0.2s;
         }
-        .tab-btn.active {
-            background: #fff;
-            color: #b82323;
-            border-color: #fff;
-        }
+        .tab-btn.active { background: #fff; color: #b82323; border-color: #fff; }
         .download-btn {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-left: 20px;
+            background: #28a745; color: white; border: none;
+            padding: 10px 20px; border-radius: 5px; cursor: pointer;
+            font-weight: bold; margin-left: 20px;
         }
 
-        /* 뷰어 컨테이너 (화면 중앙 정렬 및 스케일링) */
         #viewer-stage {
-            margin-top: 100px; /* 상단 바 공간 확보 */
-            margin-bottom: 50px;
-            transform-origin: top center; /* 확대/축소 기준점 */
-            transition: transform 0.3s ease;
+            margin-top: 100px; margin-bottom: 50px;
+            transform-origin: top center; transition: transform 0.3s ease;
         }
 
         /* === 2. A4 용지 규격 및 디자인 === */
         :root {
-            --paper-width: 210mm;
-            --paper-height: 297mm;
-            --seal-red: #a61b1b;
-            --paper-bg: #fffdfa;
-            --border-gold: #c3a77a;
+            --paper-width: 210mm; --paper-height: 297mm;
+            --seal-red: #a61b1b; --paper-bg: #fffdfa; --border-gold: #c3a77a;
         }
 
         .sheet {
-            width: var(--paper-width);
-            height: var(--paper-height);
+            width: var(--paper-width); height: var(--paper-height);
             background-color: var(--paper-bg);
-            /* 고급 종이 질감 */
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
             box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            position: relative;
-            padding: 20mm;
-            box-sizing: border-box;
-            display: none; /* 탭 전환용 */
-            overflow: hidden;
-            color: #222;
+            position: relative; padding: 20mm; box-sizing: border-box;
+            display: none; overflow: hidden; color: #222;
         }
         .sheet.active { display: block; }
 
-        /* 워터마크 (안전장치) - 배경에 깔림 */
         .watermark {
-            position: absolute;
-            top: 50%; left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 80px;
-            font-weight: 900;
-            color: rgba(0,0,0,0.04);
-            white-space: nowrap;
-            pointer-events: none;
-            user-select: none;
-            z-index: 0;
+            font-size: 80px; font-weight: 900;
+            color: rgba(0,0,0,0.015); /* 아주 연하게 */
+            white-space: nowrap; pointer-events: none; user-select: none; z-index: 0;
         }
 
-        /* === 3. 폰트 및 타이포그래피 === */
-        @font-face {
-            font-family: 'OfficialGungsuh';
-            src: local('Gungsuh'), local('궁서'), local('Batang'), serif;
+        /* === 3. 폰트 및 편집 기능 === */
+        @font-face { font-family: 'OfficialGungsuh'; src: local('Gungsuh'), local('궁서'), local('Batang'), serif; }
+        
+        /* 편집 가능한 텍스트 영역 스타일 */
+        [contenteditable="true"] {
+            outline: none; cursor: text;
         }
+        [contenteditable="true"]:hover {
+            background-color: rgba(255, 255, 0, 0.1); /* 마우스 올리면 살짝 표시 */
+            border-radius: 3px;
+        }
+        [contenteditable="true"]:focus {
+            background-color: rgba(255, 255, 0, 0.2);
+            border-bottom: 1px dashed #999;
+        }
+
         h1 {
-            text-align: center;
-            font-family: 'OfficialGungsuh', serif;
-            font-size: 36px;
-            margin-bottom: 40px;
-            border-bottom: 3px double #aaa;
-            padding-bottom: 15px;
-            letter-spacing: 5px;
+            text-align: center; font-family: 'OfficialGungsuh', serif;
+            font-size: 36px; margin-bottom: 40px;
+            border-bottom: 3px double #aaa; padding-bottom: 15px; letter-spacing: 5px;
         }
 
-        /* === 4. 레이아웃 (겹침 방지) === */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 25px;
-            position: relative;
-            z-index: 2;
-            background: transparent;
-        }
-        th, td {
-            border: 1px solid #444;
-            padding: 12px;
-            vertical-align: middle;
-            font-size: 15px;
-        }
-        th {
-            background: rgba(0,0,0,0.03);
-            text-align: center;
-            font-weight: bold;
-            width: 120px;
-            white-space: nowrap; /* 제목 줄바꿈 방지 */
-        }
-        /* 텍스트 줄바꿈 허용으로 겹침 방지 */
-        td {
-            word-break: keep-all; 
-        }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 25px; position: relative; z-index: 2; }
+        th, td { border: 1px solid #444; padding: 12px; vertical-align: middle; font-size: 15px; }
+        th { background: rgba(0,0,0,0.03); text-align: center; font-weight: bold; width: 120px; white-space: nowrap; }
+        td { word-break: keep-all; }
 
-        /* === 5. 리얼 도장 스타일 (위치 고정) === */
-        .seal-container {
-            position: absolute;
-            pointer-events: none;
-            z-index: 10;
-            mix-blend-mode: multiply; /* 인주 스며듦 효과 */
+        /* === 4. 도장 업로드 및 스타일 === */
+        .seal-wrapper {
+            position: absolute; cursor: pointer; z-index: 10;
+            transition: transform 0.2s;
+        }
+        .seal-wrapper:hover {
+            transform: scale(1.05) rotate(0deg) !important; /* 호버 시 약간 확대 */
+            filter: drop-shadow(0 0 5px rgba(0,123,255,0.5));
+        }
+        /* 실제 도장 느낌 효과 (SVG 필터 + 혼합 모드) */
+        .seal-content {
+            width: 100%; height: 100%;
+            mix-blend-mode: multiply; /* 종이에 스며듦 */
             opacity: 0.9;
         }
-        .seal-svg text {
-            font-family: 'OfficialGungsuh', serif;
-            font-weight: 900;
-            fill: var(--seal-red);
-            text-anchor: middle;
-            dominant-baseline: central;
+        /* 업로드된 이미지 스타일 */
+        .uploaded-seal-img {
+            width: 100%; height: 100%; object-fit: contain;
+            filter: sepia(100%) saturate(500%) hue-rotate(-50deg) contrast(1.2); /* 붉은 인주톤 보정 */
         }
-        .seal-svg path, .seal-svg circle, .seal-svg rect {
-            fill: none;
-            stroke: var(--seal-red);
-        }
-        
-        /* === 6. 사업자등록증 전용 스타일 === */
+        /* SVG 기본 도장 스타일 */
+        .seal-svg text { font-family: 'OfficialGungsuh', serif; font-weight: 900; fill: var(--seal-red); text-anchor: middle; dominant-baseline: central; }
+        .seal-svg path, .seal-svg circle, .seal-svg rect { fill: none; stroke: var(--seal-red); }
+
+        /* === 5. 사업자등록증 스타일 === */
         .biz-border {
-            border: 5px double var(--border-gold);
-            padding: 40px;
-            height: 100%;
-            box-sizing: border-box;
-            position: relative;
+            border: 5px double var(--border-gold); padding: 40px;
+            height: 100%; box-sizing: border-box; position: relative;
             background: rgba(255,255,255,0.4);
         }
         .biz-table th, .biz-table td { border-color: #d4c4a8; }
         .biz-table { border-top: 2px solid var(--border-gold); border-bottom: 2px solid var(--border-gold); }
-
-        /* 안전 문구 (하단) */
         .footer-note {
-            margin-top: auto;
-            border-top: 1px dashed #aaa;
-            padding-top: 10px;
-            font-size: 11px;
-            color: #777;
-            text-align: center;
-            line-height: 1.4;
+            margin-top: auto; border-top: 1px dashed #aaa; padding-top: 10px;
+            font-size: 11px; color: #777; text-align: center; line-height: 1.4;
         }
     </style>
 </head>
@@ -204,6 +144,7 @@
 </svg>
 
 <div class="control-bar">
+    <span class="help-text">💡 텍스트 클릭하여 수정 | 🔴 도장 클릭하여 이미지 변경</span>
     <button class="tab-btn active" onclick="setTab('doc1')">사용인감계</button>
     <button class="tab-btn" onclick="setTab('doc2')">사업자등록증</button>
     <button class="download-btn" onclick="downloadCurrent()">이미지 저장</button>
@@ -214,101 +155,116 @@
     <div id="doc1" class="sheet active">
         <div class="watermark">REFERENCE ONLY</div>
         
-        <div style="font-size:12px; color:#888; text-align:center; margin-bottom:10px;">[플랫폼 제출 및 디자인 시안 확인용]</div>
+        <div contenteditable="true" style="font-size:12px; color:#888; text-align:center; margin-bottom:10px;">[플랫폼 제출 및 디자인 시안 확인용]</div>
 
-        <h1>사 용 인 감 계</h1>
+        <h1 contenteditable="true">사 용 인 감 계</h1>
 
         <div style="margin-bottom: 20px;">
-            <strong>1. 인감 등록 신고</strong>
-            <p style="font-size: 14px; margin-top:5px; color:#555;">
+            <strong contenteditable="true">1. 인감 등록 신고</strong>
+            <p contenteditable="true" style="font-size: 14px; margin-top:5px; color:#555;">
                 본 회사는 디자인 시안 확인을 위해 아래의 인감을 등록하며, 본 문서는 실제 등기소 제출용 원본이 아님을 명시합니다.
             </p>
         </div>
 
         <table style="border: 2px solid #333;">
             <tr style="background: #eee;">
-                <th style="width: 20%;">구 분</th>
-                <th style="width: 40%;">법인인감 (Design)</th>
-                <th style="width: 40%;">사용인감 (Reference)</th>
+                <th width="20%" contenteditable="true">구 분</th>
+                <th width="40%" contenteditable="true">법인인감 (Design)</th>
+                <th width="40%" contenteditable="true">사용인감 (Reference)</th>
             </tr>
             <tr style="height: 150px;">
-                <th>인 영<br>(날 인)</th>
+                <th contenteditable="true">인 영<br>(날 인)</th>
+                
                 <td style="position: relative; text-align: center; background: #fff;">
-                    <span style="color:#ccc; font-size:12px;">(인감 날인)</span>
-                    <div class="seal-container" style="top:50%; left:50%; transform:translate(-50%, -50%) rotate(-2deg);">
-                        <svg width="100" height="100" viewBox="0 0 100 100" class="seal-svg">
-                            <g filter="url(#inkPaper)">
-                                <circle cx="50" cy="50" r="46" stroke-width="4"/>
-                                <circle cx="50" cy="50" r="30" stroke-width="2"/>
-                                <path id="txt1" d="M 14,50 A 36,36 0 1,1 86,50" fill="none"/>
-                                <text font-size="11" letter-spacing="1"><textPath href="#txt1" startOffset="50%">DAISY OFFICIAL</textPath></text>
-                                <text x="50" y="52" font-size="13">DESIGN SEAL</text>
-                            </g>
-                        </svg>
+                    <span contenteditable="true" style="color:#ccc; font-size:12px;">(인감 날인)</span>
+                    <div class="seal-wrapper" onclick="triggerUpload(this)" style="top:50%; left:50%; transform:translate(-50%, -50%) rotate(-2deg); width:100px; height:100px;">
+                        <input type="file" accept="image/*" onchange="updateSeal(this)" style="display:none;">
+                        <div class="seal-content">
+                            <svg width="100%" height="100%" viewBox="0 0 100 100" class="seal-svg">
+                                <g filter="url(#inkPaper)">
+                                    <circle cx="50" cy="50" r="46" stroke-width="4"/>
+                                    <circle cx="50" cy="50" r="30" stroke-width="2"/>
+                                    <path id="txt1" d="M 14,50 A 36,36 0 1,1 86,50" fill="none"/>
+                                    <text font-size="11" letter-spacing="1"><textPath href="#txt1" startOffset="50%">DAISY OFFICIAL</textPath></text>
+                                    <text x="50" y="52" font-size="13">DESIGN SEAL</text>
+                                </g>
+                            </svg>
+                        </div>
                     </div>
                 </td>
+                
                 <td style="position: relative; text-align: center; background: #fff;">
-                    <span style="color:#ccc; font-size:12px;">(사용인감 날인)</span>
-                    <div class="seal-container" style="top:50%; left:50%; transform:translate(-50%, -50%) rotate(1deg);">
-                        <svg width="90" height="90" viewBox="0 0 100 100" class="seal-svg">
-                            <g filter="url(#inkPaper)">
-                                <circle cx="50" cy="50" r="46" stroke-width="5" stroke-dasharray="8,3"/>
-                                <text x="50" y="38" font-size="14">DAISY</text>
-                                <text x="50" y="58" font-size="10">FOR</text>
-                                <text x="50" y="72" font-size="10">REFERENCE</text>
-                            </g>
-                        </svg>
+                    <span contenteditable="true" style="color:#ccc; font-size:12px;">(사용인감 날인)</span>
+                    <div class="seal-wrapper" onclick="triggerUpload(this)" style="top:50%; left:50%; transform:translate(-50%, -50%) rotate(1deg); width:90px; height:90px;">
+                        <input type="file" accept="image/*" onchange="updateSeal(this)" style="display:none;">
+                        <div class="seal-content">
+                            <svg width="100%" height="100%" viewBox="0 0 100 100" class="seal-svg">
+                                <g filter="url(#inkPaper)">
+                                    <circle cx="50" cy="50" r="46" stroke-width="5" stroke-dasharray="8,3"/>
+                                    <text x="50" y="38" font-size="14">DAISY</text>
+                                    <text x="50" y="58" font-size="10">FOR</text>
+                                    <text x="50" y="72" font-size="10">REFERENCE</text>
+                                </g>
+                            </svg>
+                        </div>
                     </div>
                 </td>
             </tr>
         </table>
 
-        <div style="margin: 30px 0 10px;"><strong>2. 업체 정보</strong></div>
+        <div style="margin: 30px 0 10px;"><strong contenteditable="true">2. 업체 정보</strong></div>
         <table style="border-top: 2px solid #333;">
             <tr>
-                <th>상 호</th>
-                <td style="font-weight: bold;">주식회사 데이지 (DAISY)</td>
+                <th contenteditable="true">상 호</th>
+                <td contenteditable="true" style="font-weight: bold;">주식회사 데이지 (DAISY)</td>
             </tr>
             <tr>
-                <th>주 소</th>
-                <td>서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
+                <th contenteditable="true">주 소</th>
+                <td contenteditable="true">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
             </tr>
             <tr>
-                <th>대 표 자</th>
+                <th contenteditable="true">대 표 자</th>
                 <td style="position: relative;">
-                    성 기 범 &nbsp; (인)
-                    <div class="seal-container" style="top:50%; left:100px; transform:translate(0, -50%) rotate(-4deg);">
-                        <svg width="40" height="40" viewBox="0 0 50 50" class="seal-svg">
-                            <g filter="url(#inkPaper)">
-                                <circle cx="25" cy="25" r="23" stroke-width="2"/>
-                                <text x="25" y="29" font-size="10">SEAL</text>
-                            </g>
-                        </svg>
+                    <span contenteditable="true">성 기 범 &nbsp; (인)</span>
+                    <div class="seal-wrapper" onclick="triggerUpload(this)" style="top:50%; left:120px; transform:translate(0, -50%) rotate(-4deg); width:40px; height:40px;">
+                        <input type="file" accept="image/*" onchange="updateSeal(this)" style="display:none;">
+                        <div class="seal-content">
+                            <svg width="100%" height="100%" viewBox="0 0 50 50" class="seal-svg">
+                                <g filter="url(#inkPaper)">
+                                    <circle cx="25" cy="25" r="23" stroke-width="2"/>
+                                    <text x="25" y="29" font-size="10">SEAL</text>
+                                </g>
+                            </svg>
+                        </div>
                     </div>
                 </td>
             </tr>
         </table>
 
         <div style="text-align: center; margin-top: 60px;">
-            <div style="font-size: 20px; font-weight: bold; margin-bottom: 30px;">2020년 3월 20일</div>
+            <div contenteditable="true" style="font-size: 20px; font-weight: bold; margin-bottom: 30px;">2020년 3월 20일</div>
             <div style="display: inline-block; text-align: left; padding-right: 80px; position: relative;">
-                <p>상 호 : 주식회사 데이지</p>
-                <p>대표이사 : <strong>성 기 범</strong> (인)</p>
-                <div class="seal-container" style="bottom:-10px; right:0; transform:rotate(3deg);">
-                    <svg width="80" height="80" viewBox="0 0 100 100" class="seal-svg">
-                        <g filter="url(#inkPaper)">
-                            <circle cx="50" cy="50" r="46" stroke-width="4"/>
-                            <circle cx="50" cy="50" r="30" stroke-width="2"/>
-                            <path id="txt2" d="M 14,50 A 36,36 0 1,1 86,50" fill="none"/>
-                            <text font-size="11" letter-spacing="1"><textPath href="#txt2" startOffset="50%">DAISY OFFICIAL</textPath></text>
-                            <text x="50" y="52" font-size="13">DESIGN SEAL</text>
-                        </g>
-                    </svg>
+                <p contenteditable="true">상 호 : 주식회사 데이지</p>
+                <p><span contenteditable="true">대표이사 : <strong>성 기 범</strong> (인)</span></p>
+                
+                <div class="seal-wrapper" onclick="triggerUpload(this)" style="bottom:-10px; right:0; transform:rotate(3deg); width:80px; height:80px;">
+                    <input type="file" accept="image/*" onchange="updateSeal(this)" style="display:none;">
+                    <div class="seal-content">
+                        <svg width="100%" height="100%" viewBox="0 0 100 100" class="seal-svg">
+                            <g filter="url(#inkPaper)">
+                                <circle cx="50" cy="50" r="46" stroke-width="4"/>
+                                <circle cx="50" cy="50" r="30" stroke-width="2"/>
+                                <path id="txt2" d="M 14,50 A 36,36 0 1,1 86,50" fill="none"/>
+                                <text font-size="11" letter-spacing="1"><textPath href="#txt2" startOffset="50%">DAISY OFFICIAL</textPath></text>
+                                <text x="50" y="52" font-size="13">DESIGN SEAL</text>
+                            </g>
+                        </svg>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="footer-note" style="position: absolute; bottom: 20px; width: 85%;">
+        <div contenteditable="true" class="footer-note" style="position: absolute; bottom: 20px; width: 85%;">
             ※ 본 문서는 디자인 시안 확인용(Reference Only)입니다. 법적 효력 없음.
         </div>
     </div>
@@ -316,67 +272,71 @@
     <div id="doc2" class="sheet">
         <div class="watermark">REFERENCE ONLY</div>
         <div class="biz-border">
-            <div style="font-size:12px; color:#888; text-align:center; margin-bottom:10px;">[플랫폼 검수용 제출 자료]</div>
+            <div contenteditable="true" style="font-size:12px; color:#888; text-align:center; margin-bottom:10px;">[플랫폼 검수용 제출 자료]</div>
 
-            <h1 style="border:none; margin-bottom:10px; font-size:40px;">사 업 자 등 록 증</h1>
-            <div style="text-align:center; font-size:22px; font-weight:bold; margin-bottom:30px; font-family:'OfficialGungsuh';">( 법 인 사 업 자 )</div>
+            <h1 contenteditable="true" style="border:none; margin-bottom:10px; font-size:40px;">사 업 자 등 록 증</h1>
+            <div contenteditable="true" style="text-align:center; font-size:22px; font-weight:bold; margin-bottom:30px; font-family:'OfficialGungsuh';">( 법 인 사 업 자 )</div>
 
             <table class="biz-table" style="border-left:none; border-right:none;">
                 <tr>
-                    <th>등 록 번 호</th>
-                    <td colspan="3" style="font-size:24px; font-weight:bold; color:#000;">123-85-67890</td>
+                    <th contenteditable="true">등 록 번 호</th>
+                    <td contenteditable="true" colspan="3" style="font-size:24px; font-weight:bold; color:#000;">123-85-67890</td>
                 </tr>
                 <tr>
-                    <th>법 인 명</th>
-                    <td>주식회사 데이지 (Daisy)</td>
-                    <th>대 표 자</th>
-                    <td>성 기 범</td>
+                    <th contenteditable="true">법 인 명</th>
+                    <td contenteditable="true">주식회사 데이지 (Daisy)</td>
+                    <th contenteditable="true">대 표 자</th>
+                    <td contenteditable="true">성 기 범</td>
                 </tr>
                 <tr>
-                    <th>개 업 일</th>
-                    <td>2020년 03월 20일</td>
-                    <th>법인번호</th>
-                    <td>110111-2345678</td>
+                    <th contenteditable="true">개 업 일</th>
+                    <td contenteditable="true">2020년 03월 20일</td>
+                    <th contenteditable="true">법인번호</th>
+                    <td contenteditable="true">110111-2345678</td>
                 </tr>
                 <tr>
-                    <th>사업장 주소</th>
-                    <td colspan="3">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
+                    <th contenteditable="true">사업장 주소</th>
+                    <td contenteditable="true" colspan="3">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
                 </tr>
                 <tr>
-                    <th>본 점 주 소</th>
-                    <td colspan="3">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
+                    <th contenteditable="true">본 점 주 소</th>
+                    <td contenteditable="true" colspan="3">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
                 </tr>
                 <tr>
-                    <th>업 태</th>
-                    <td>서비스업</td>
-                    <th>종 목</th>
-                    <td>인터넷 만남 매칭 서비스</td>
+                    <th contenteditable="true">업 태</th>
+                    <td contenteditable="true">서비스업</td>
+                    <th contenteditable="true">종 목</th>
+                    <td contenteditable="true">인터넷 만남 매칭 서비스</td>
                 </tr>
             </table>
 
             <div style="text-align:center; margin-top:80px; flex-grow:1; font-family:'OfficialGungsuh';">
-                <p style="font-size:18px; line-height:1.8; margin-bottom:50px;">
+                <p contenteditable="true" style="font-size:18px; line-height:1.8; margin-bottom:50px;">
                     부가가치세법 제8조의 규정에 의하여<br>
                     사업자등록을 하였음을 증명합니다 (Design Mockup).
                 </p>
-                <div style="font-size:22px; font-weight:bold; margin-bottom:40px;">2020년 3월 20일</div>
+                <div contenteditable="true" style="font-size:22px; font-weight:bold; margin-bottom:40px;">2020년 3월 20일</div>
                 
                 <div style="display:inline-block; position:relative; padding-right:120px;">
-                    <span style="font-size:30px; font-weight:bold;">강 남 세 무 서 장</span>
-                    <div class="seal-container" style="top:50%; right:0; transform:translate(10%, -50%) rotate(-1deg);">
-                        <svg width="90" height="90" viewBox="0 0 100 100" class="seal-svg">
-                            <g filter="url(#inkPaper)">
-                                <rect x="5" y="5" width="90" height="90" stroke-width="5"/>
-                                <text x="50" y="32" font-size="14">TAX OFFICE</text>
-                                <text x="50" y="55" font-size="12">REFERENCE</text>
-                                <text x="50" y="78" font-size="14">MARK</text>
-                            </g>
-                        </svg>
+                    <span contenteditable="true" style="font-size:30px; font-weight:bold;">강 남 세 무 서 장</span>
+                    
+                    <div class="seal-wrapper" onclick="triggerUpload(this)" style="top:50%; right:0; transform:translate(10%, -50%) rotate(-1deg); width:90px; height:90px;">
+                        <input type="file" accept="image/*" onchange="updateSeal(this)" style="display:none;">
+                        <div class="seal-content">
+                            <svg width="100%" height="100%" viewBox="0 0 100 100" class="seal-svg">
+                                <g filter="url(#inkPaper)">
+                                    <rect x="5" y="5" width="90" height="90" stroke-width="5"/>
+                                    <text x="50" y="32" font-size="14">TAX OFFICE</text>
+                                    <text x="50" y="55" font-size="12">REFERENCE</text>
+                                    <text x="50" y="78" font-size="14">MARK</text>
+                                </g>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="footer-note" style="border:none;">
+            <div contenteditable="true" class="footer-note" style="border:none;">
                 ※ 본 문서는 디자인 시안용입니다. 법적 효력이 필요한 경우 국세청 홈택스 정본을 사용하십시오.
             </div>
         </div>
@@ -384,14 +344,13 @@
 </div>
 
 <script>
-    // === 반응형 뷰어 엔진 (화면 크기에 맞춰 자동 축소) ===
+    // === 1. 반응형 뷰어 엔진 ===
     function resizeViewer() {
         const stage = document.getElementById('viewer-stage');
-        const sheetWidth = 794; // A4 width in pixels approx (210mm @ 96dpi)
-        const margin = 40; // 여백
+        const sheetWidth = 794; // A4 pixel width
+        const margin = 40;
         const windowWidth = window.innerWidth;
 
-        // 화면이 문서보다 작으면 축소
         if (windowWidth < (sheetWidth + margin)) {
             const scale = (windowWidth - margin) / sheetWidth;
             stage.style.transform = `scale(${scale})`;
@@ -400,7 +359,7 @@
         }
     }
 
-    // 탭 전환
+    // === 2. 탭 기능 ===
     function setTab(docId) {
         document.querySelectorAll('.sheet').forEach(el => el.classList.remove('active'));
         document.getElementById(docId).classList.add('active');
@@ -409,19 +368,42 @@
             btn.classList.remove('active');
             if(btn.innerText.includes(docId === 'doc1' ? '사용인감' : '사업자')) btn.classList.add('active');
         });
-        
-        // 탭 전환 시 높이 재조정 등 필요하면 여기서 처리
     }
 
-    // 이미지 다운로드
+    // === 3. 도장 이미지 업로드 기능 ===
+    function triggerUpload(wrapper) {
+        // 클릭 시 숨겨진 input file 트리거
+        const input = wrapper.querySelector('input[type="file"]');
+        input.click();
+    }
+
+    function updateSeal(input) {
+        if (input.files && input.files[0]) {
+            const wrapper = input.parentElement;
+            const contentDiv = wrapper.querySelector('.seal-content');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // 기존 SVG 내용을 이미지 태그로 교체
+                // sepia 등의 필터를 적용해 인주 느낌 유지
+                contentDiv.innerHTML = `<img src="${e.target.result}" class="uploaded-seal-img" alt="Seal">`;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // === 4. 이미지 저장 기능 ===
     function downloadCurrent() {
         const activeSheet = document.querySelector('.sheet.active');
         if (!activeSheet) return;
 
-        // 캡처 전 스케일 초기화 (고화질 캡처 위함)
+        // 캡처 전 준비: 스케일 초기화 & 편집 포커스 해제
         const stage = document.getElementById('viewer-stage');
         const originalTransform = stage.style.transform;
         stage.style.transform = 'scale(1)'; 
+        
+        // 포커스 해제 (커서 깜빡임 방지)
+        if (document.activeElement) document.activeElement.blur();
 
         html2canvas(activeSheet, {
             scale: 2, // 고화질
@@ -429,20 +411,21 @@
             backgroundColor: null
         }).then(canvas => {
             const link = document.createElement('a');
-            link.download = '데이지_증명서_시안.png';
+            link.download = '데이지_증명서_편집본.png';
             link.href = canvas.toDataURL('image/png');
             link.click();
             
-            // 캡처 후 스케일 복구
+            // 복구
             stage.style.transform = originalTransform;
+            resizeViewer(); // 다시 스케일 적용
         });
     }
 
-    // 이벤트 리스너 등록
+    // 초기화
     window.addEventListener('resize', resizeViewer);
     window.addEventListener('DOMContentLoaded', () => {
         resizeViewer();
-        setTab('doc1'); // 초기 실행
+        setTab('doc1');
     });
 </script>
 
