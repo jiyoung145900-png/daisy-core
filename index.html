@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>문서 생성 시스템</title>
+    <title>문서 생성 및 다운로드</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root {
             --a4-width: 210mm;
@@ -59,6 +60,18 @@
         }
         .btn-secondary:hover {
             background-color: #5a6268;
+        }
+        .btn-download {
+            background-color: #28a745;
+            margin-bottom: 20px;
+            display: block;
+            width: 200px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+        }
+        .btn-download:hover {
+            background-color: #218838;
         }
         .tabs {
             display: flex;
@@ -161,9 +174,8 @@
             margin-left: 15px;
         }
 
-        /* --- 사업자등록증 스타일 --- */
+        /* --- 사업자등록증 스타일 (참고 이미지 반영) --- */
         #bizDoc {
-            /* 참고 이미지 스타일 반영 */
             border: 3px solid #bfa97a; /* 안쪽 금색 테두리 */
             outline: 5px double #333; /* 바깥쪽 이중 테두리 */
             outline-offset: 5px;
@@ -179,7 +191,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 120px;
-            color: rgba(200, 200, 200, 0.1); /* 아주 희미하게 */
+            color: rgba(200, 200, 200, 0.08); /* 아주 희미하게 */
             font-family: "Gungsuh", serif;
             font-weight: bold;
             z-index: 0;
@@ -211,7 +223,6 @@
             position: relative;
             z-index: 1;
         }
-        /* 참고 이미지 스타일 반영: th 배경 없애고 테두리 조정 */
         #bizDoc .biz-info th, #bizDoc .biz-info td {
             border-top: 1px solid #ccc;
             border-bottom: 1px solid #ccc;
@@ -261,7 +272,7 @@
                 padding: 0;
                 background-color: #fff;
             }
-            .no-print, .tabs {
+            .no-print, .tabs, .btn-download {
                 display: none !important;
             }
             .document-page {
@@ -303,6 +314,8 @@
 <div id="documentContainer">
 
     <div id="stampDoc" class="document-page active">
+        <button class="btn btn-download no-print" onclick="downloadImage('stampDoc', '사용인감계.png')">이미지 다운로드</button>
+        
         <h1>사 용 인 감 계</h1>
 
         <div class="content">
@@ -379,6 +392,8 @@
     </div>
 
     <div id="bizDoc" class="document-page">
+        <button class="btn btn-download no-print" onclick="downloadImage('bizDoc', '사업자등록증.png')">이미지 다운로드</button>
+
         <h1>사업자등록증</h1>
         <div class="doc-type">( 법 인 사 업 자 )</div>
 
@@ -414,7 +429,7 @@
             </tr>
             <tr>
                 <th>종 목</th>
-                <td colspan="2">숙박업</td>
+                <td colspan="2">인터넷 만남 매칭 서비스</td>
             </tr>
         </table>
 
@@ -481,6 +496,34 @@
         }
 
         alert('문서 내용이 업데이트되었습니다. 인쇄 버튼을 눌러 확인하세요.');
+    }
+
+    // 이미지 다운로드 기능 (html2canvas 사용)
+    function downloadImage(elementId, fileName) {
+        const element = document.getElementById(elementId);
+        
+        // 다운로드 버튼 등 no-print 요소 숨김 처리 후 캡처
+        const noPrintElements = element.querySelectorAll('.no-print');
+        noPrintElements.forEach(el => el.style.display = 'none');
+
+        html2canvas(element, {
+            scale: 2, // 고해상도
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff' // 배경색 지정
+        }).then(canvas => {
+            // 캡처 후 숨김 처리 복구
+            noPrintElements.forEach(el => el.style.display = '');
+
+            // 이미지 데이터 URL 생성
+            const image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+            
+            // 가상의 링크를 생성하여 다운로드 실행
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = image;
+            link.click();
+        });
     }
 </script>
 
