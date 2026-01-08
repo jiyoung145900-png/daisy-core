@@ -3,13 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>문서 생성 및 다운로드</title>
+    <title>문서 생성 시스템 (데이지)</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root {
             --a4-width: 210mm;
             --a4-height: 297mm;
             --seal-color: #c72c2c; /* 인주색 */
+            --paper-color: #fffdf9; /* 약간 미색 종이 */
+            --gold-border: #bfa97a; /* 금색 테두리 색상 */
+        }
+        @font-face {
+            font-family: 'Gungsuh';
+            src: local('Gungsuh'), local('궁서');
         }
         body {
             font-family: 'Malgun Gothic', dotum, sans-serif;
@@ -69,6 +75,7 @@
             margin-left: auto;
             margin-right: auto;
             text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         .btn-download:hover {
             background-color: #218838;
@@ -77,6 +84,9 @@
             display: flex;
             margin-bottom: 20px;
             border-bottom: 2px solid #007bff;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
         .tab-btn {
             padding: 10px 20px;
@@ -86,6 +96,7 @@
             font-size: 16px;
             font-weight: bold;
             color: #555;
+            flex: 1;
         }
         .tab-btn.active {
             color: #007bff;
@@ -98,13 +109,14 @@
             margin: 0 auto;
             background-color: #fff;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            padding: 25mm; /* 실제 여백 설정 */
+            padding: 25mm;
             box-sizing: border-box;
             position: relative;
-            display: none; /* 기본 숨김 */
+            display: none;
+            overflow: hidden; /* 내용이 넘치지 않도록 */
         }
         .document-page.active {
-            display: block; /* 활성화된 페이지만 표시 */
+            display: block;
         }
 
         /* --- 공통 도장 스타일 --- */
@@ -112,7 +124,7 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-3deg); /* 약간 기울임 */
+            transform: translate(-50%, -50%) rotate(-2deg);
             color: var(--seal-color);
             border: 4px solid var(--seal-color);
             border-radius: 50%;
@@ -120,21 +132,21 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            font-family: "Gungsuh", "Batang", serif; /* 궁서체 사용 */
+            font-family: "Gungsuh", serif;
             font-weight: bold;
             line-height: 1.2;
-            letter-spacing: -1px;
-            opacity: 0.85; /* 약간 투명하게 */
-            /* 도장 질감 효과 (SVG 필터 사용) */
-            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="3" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="3" /></filter><rect width="100" height="100" fill="black" filter="url(#noise)" /></svg>');
-            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="3" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="3" /></filter><rect width="100" height="100" fill="black" filter="url(#noise)" /></svg>');
+            letter-spacing: -0.5px;
+            opacity: 0.9;
+            mix-blend-mode: multiply; /* 종이에 스며든 느낌 */
         }
 
         /* --- 사용인감계 스타일 --- */
         #stampDoc h1 {
             text-align: center;
-            font-size: 32px;
+            font-size: 34px;
             margin-bottom: 40px;
+            font-family: "Gungsuh", serif;
+            letter-spacing: 5px;
         }
         #stampDoc table {
             width: 100%;
@@ -142,128 +154,164 @@
             margin-bottom: 20px;
         }
         #stampDoc th, #stampDoc td {
-            border: 1px solid #000;
-            padding: 10px;
+            border: 1px solid #333;
+            padding: 12px;
             text-align: center;
             vertical-align: middle;
+            font-size: 15px;
         }
         #stampDoc th {
-            background-color: #f2f2f2;
+            background-color: #f8f9fa;
+            font-weight: bold;
         }
         .seal-cell {
             position: relative;
-            height: 120px;
+            height: 130px;
         }
-        /* 법인 도장 */
         .seal-corp {
-            width: 90px;
-            height: 90px;
-            font-size: 14px;
+            width: 95px;
+            height: 95px;
+            font-size: 15px;
+            border-width: 5px;
         }
-        /* 대표자 도장 */
         .seal-rep-container {
             position: relative;
             display: inline-block;
+            padding-right: 60px; /* 도장 공간 확보 */
         }
         .seal-rep {
-            width: 60px;
-            height: 60px;
-            font-size: 12px;
+            width: 65px;
+            height: 65px;
+            font-size: 13px;
             border-width: 3px;
-            left: 100%; /* 텍스트 옆으로 이동 */
-            margin-left: 15px;
+            left: auto; right: -10px; /* 텍스트 오른쪽에 위치 */
+            transform: translate(0, -50%) rotate(-2deg);
         }
 
-        /* --- 사업자등록증 스타일 (참고 이미지 반영) --- */
+        /* --- 사업자등록증 스타일 (리얼함 강조) --- */
         #bizDoc {
-            border: 3px solid #bfa97a; /* 안쪽 금색 테두리 */
-            outline: 5px double #333; /* 바깥쪽 이중 테두리 */
-            outline-offset: 5px;
-            padding: 25mm;
-            background-color: #fffcf5; /* 약간 미색 배경 */
-            position: relative;
+            background-color: var(--paper-color);
+            padding: 20mm; /* 패딩 약간 조정 */
+            /* 이중 테두리로 실제 느낌 모방 */
+            border: 5px double var(--gold-border); 
+            outline: 1px solid #aaa;
+            outline-offset: 3px;
         }
-        /* 배경 국세청 로고 (약식) */
+        /* 배경 워터마크 */
         #bizDoc::before {
-            content: '국 세 청';
+            content: '대한민국 국세청';
             position: absolute;
-            top: 45%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 120px;
-            color: rgba(200, 200, 200, 0.08); /* 아주 희미하게 */
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            font-size: 100px;
+            color: rgba(200, 180, 150, 0.15); /* 은은한 색상 */
             font-family: "Gungsuh", serif;
             font-weight: bold;
             z-index: 0;
             pointer-events: none;
-            letter-spacing: 20px;
+            white-space: nowrap;
+        }
+        #bizDoc .content-wrap {
+            position: relative;
+            z-index: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
         #bizDoc h1 {
             text-align: center;
-            font-size: 38px;
+            font-size: 42px;
             font-family: "Gungsuh", serif;
-            margin-bottom: 10px;
-            letter-spacing: 5px;
-            color: #333;
-            position: relative;
-            z-index: 1;
+            margin-top: 0;
+            margin-bottom: 5px;
+            letter-spacing: 8px;
+            color: #222;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
         }
         #bizDoc .doc-type {
             text-align: center;
-            font-size: 22px;
+            font-size: 24px;
             font-weight: bold;
-            margin-bottom: 40px;
-            position: relative;
-            z-index: 1;
+            margin-bottom: 35px;
+            font-family: "Gungsuh", serif;
         }
-        #bizDoc .biz-info {
+        #bizDoc .biz-info-table {
             width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
             margin-bottom: 30px;
-            border-collapse: collapse;
-            position: relative;
-            z-index: 1;
+            border-top: 2px solid #555;
+            border-bottom: 2px solid #555;
         }
-        #bizDoc .biz-info th, #bizDoc .biz-info td {
-            border-top: 1px solid #ccc;
-            border-bottom: 1px solid #ccc;
-            padding: 12px 10px;
+        #bizDoc .biz-info-table th, #bizDoc .biz-info-table td {
+            padding: 15px 10px;
             text-align: left;
-            font-size: 16px;
+            font-size: 17px;
+            border-bottom: 1px solid #ddd;
         }
-        #bizDoc .biz-info th {
+        #bizDoc .biz-info-table tr:last-child th, 
+        #bizDoc .biz-info-table tr:last-child td {
+            border-bottom: none;
+        }
+        #bizDoc .biz-info-table th {
             background-color: transparent;
-            width: 130px;
-            color: #555;
+            width: 140px;
+            color: #444;
             font-weight: normal;
+            font-family: "Malgun Gothic", sans-serif;
+            letter-spacing: -0.5px;
         }
-        #bizDoc .biz-info td {
+        #bizDoc .biz-info-table td {
             font-weight: bold;
             color: #000;
+            font-family: "Malgun Gothic", sans-serif;
+        }
+        #bizDoc .biz-info-table .merged-row th {
+             vertical-align: top;
+             padding-top: 20px;
         }
         #bizDoc .issue-info {
             text-align: center;
-            margin-top: 70px;
-            font-size: 18px;
-            position: relative;
-            z-index: 1;
-        }
-        #bizDoc .tax-office {
-            font-size: 30px;
-            font-weight: bold;
-            margin-top: 40px;
+            margin-top: auto; /* 하단으로 밀어내기 */
+            padding-bottom: 30px;
+            font-size: 19px;
             font-family: "Gungsuh", serif;
+            line-height: 1.8;
+        }
+        #bizDoc .tax-office-seal-group {
+            margin-top: 50px;
             position: relative;
             display: inline-block;
-            z-index: 1;
+            padding-right: 100px; /* 직인 공간 확보 */
         }
-        /* 세무서장 직인 스타일 */
-        .official-seal {
-            width: 95px;
-            height: 95px;
-            font-size: 18px;
-            border-width: 5px;
-            left: 100%;
-            transform: translate(-30%, -50%) rotate(-3deg);
+        #bizDoc .tax-office-name {
+            font-size: 32px;
+            font-weight: bold;
+            font-family: "Gungsuh", serif;
+            letter-spacing: 3px;
+        }
+        /* 세무서장 직인 (사각형) */
+        .official-seal-rect {
+            position: absolute;
+            top: 50%;
+            right: 0;
+            transform: translate(0, -50%) rotate(-1deg);
+            width: 90px;
+            height: 90px;
+            border: 6px solid var(--seal-color);
+            color: var(--seal-color);
+            font-family: "Gungsuh", serif;
+            font-weight: bold;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            line-height: 1.3;
+            opacity: 0.9;
+            mix-blend-mode: multiply;
+            background-color: transparent;
+            border-radius: 2px; /* 약간 둥근 모서리 */
         }
 
         /* --- 인쇄 설정 --- */
@@ -278,8 +326,10 @@
             .document-page {
                 margin: 0;
                 box-shadow: none;
-                page-break-after: always; /* 페이지 분리 */
-                display: block !important; /* 모든 문서 표시 */
+                page-break-after: always;
+                display: block !important;
+                -webkit-print-color-adjust: exact; /* 배경색 및 이미지 인쇄 강제 */
+                print-color-adjust: exact;
             }
         }
     </style>
@@ -288,17 +338,14 @@
 
 <div class="no-print">
     <h2>문서 정보 입력</h2>
+    <p style="color: #666; font-size: 14px;">* 날짜와 수신인을 변경하고 '문서 내용 적용'을 누르세요.</p>
     <div class="input-group">
-        <label for="docDate">날짜 (개업일/작성일):</label>
+        <label for="docDate">개업연월일 / 작성일:</label>
         <input type="date" id="docDate" value="2020-03-20">
     </div>
     <div class="input-group">
         <label for="recipientName">수신인 (사용인감계용):</label>
         <input type="text" id="recipientName" placeholder="예: 홍길동">
-    </div>
-    <div class="input-group">
-        <label for="bizNum">사업자등록번호 (사업자등록증용):</label>
-        <input type="text" id="bizNum" value="123-45-67890" placeholder="예: 123-45-67890">
     </div>
     <div style="text-align: center; margin-top: 20px;">
         <button class="btn" onclick="updateDocuments()">문서 내용 적용</button>
@@ -308,49 +355,49 @@
 
 <div class="tabs no-print">
     <button class="tab-btn active" onclick="showTab('stampDoc')">사용인감계</button>
-    <button class="tab-btn" onclick="showTab('bizDoc')">사업자등록증</button>
+    <button class="tab-btn" onclick="showTab('bizDoc')">사업자등록증 (법인)</button>
 </div>
 
 <div id="documentContainer">
 
     <div id="stampDoc" class="document-page active">
-        <button class="btn btn-download no-print" onclick="downloadImage('stampDoc', '사용인감계.png')">이미지 다운로드</button>
+        <button class="btn btn-download no-print" onclick="downloadImage('stampDoc', '사용인감계_데이지.png')">이미지 다운로드</button>
         
         <h1>사 용 인 감 계</h1>
 
-        <div class="content">
-            <h3>1. 인감 등록</h3>
-            <p>본 법인은 아래의 법인인감을 본점에 등기된 인감으로 하고, 아래의 사용인감(데이지 도장)을 업무 수행 시 사용함을 신고합니다.</p>
+        <div style="margin-bottom: 40px;">
+            <h3 style="border-bottom: 2px solid #333; padding-bottom: 10px;">1. 인감 등록</h3>
+            <p style="margin-bottom: 20px;">본 법인은 아래의 법인인감을 본점에 등기된 인감으로 하고, 아래의 사용인감(데이지 도장)을 업무 수행 시 사용함을 신고합니다.</p>
             <table>
                 <thead>
                     <tr>
-                        <th>구분</th>
-                        <th>법인인감 (등기인감)</th>
-                        <th>사용인감</th>
+                        <th style="width: 20%;">구분</th>
+                        <th style="width: 40%;">법인인감 (등기인감)</th>
+                        <th style="width: 40%;">사용인감</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td></td>
+                        <td style="font-weight: bold;">날 인</td>
                         <td class="seal-cell">
-                            (법인인감 날인)
+                            <div style="position: absolute; bottom: 10px; width: 100%; color: #999;">(법인인감 날인)</div>
                             <div class="seal-style seal-corp"><span>주식회사<br>데이지<br>대표이사인</span></div>
                         </td>
                         <td class="seal-cell">
-                            (사용인감 날인)
-                            <div class="seal-style seal-corp" style="border-style: double; border-width: 6px;"><span>주식회사<br>데이지<br>사용인감</span></div>
+                            <div style="position: absolute; bottom: 10px; width: 100%; color: #999;">(사용인감 날인)</div>
+                            <div class="seal-style seal-corp" style="box-shadow: 0 0 0 4px #fff, 0 0 0 8px var(--seal-color);"><span>주식회사<br>데이지<br>사용인감</span></div>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <div class="content">
-            <h3>2. 업체 정보</h3>
+        <div style="margin-bottom: 40px;">
+            <h3 style="border-bottom: 2px solid #333; padding-bottom: 10px;">2. 업체 정보</h3>
             <table>
                 <tr>
-                    <th>상 호</th>
-                    <td>데이지(Daisy)</td>
+                    <th style="width: 30%;">상 호</th>
+                    <td style="font-weight: bold; font-size: 16px;">데이지(Daisy)</td>
                 </tr>
                 <tr>
                     <th>주 소</th>
@@ -358,7 +405,7 @@
                 </tr>
                 <tr>
                     <th>대표자</th>
-                    <td style="text-align: left; padding-left: 20px;">
+                    <td style="text-align: left; padding-left: 30px;">
                         <span class="seal-rep-container">
                             성기범 (인)
                             <div class="seal-style seal-rep"><span>성기범<br>인</span></div>
@@ -368,80 +415,89 @@
             </table>
         </div>
 
-        <div class="content">
-            <h3>3. 사용인감 사용에 관한 확인</h3>
-            <p>본 사용인감은 상기 법인의 업무상 계약, 신청, 제출 서류 등에 사용하며, 해당 사용인감으로 행해진 모든 행위에 대하여 법인인감과 동일한 법적 효력을 가짐을 확인합니다. 또한 본 사용인감은 법인인감의 대용으로 사용되는 것으로, 본 법인은 이와 관련하여 발생하는 모든 책임을 부담할 것을 확약합니다.</p>
+        <div style="margin-bottom: 40px;">
+            <h3 style="border-bottom: 2px solid #333; padding-bottom: 10px;">3. 사용인감 사용에 관한 확인</h3>
+            <p style="line-height: 1.8;">본 사용인감은 상기 법인의 업무상 계약, 신청, 제출 서류 등에 사용하며, 해당 사용인감으로 행해진 모든 행위에 대하여 법인인감과 동일한 법적 효력을 가짐을 확인합니다. 또한 본 사용인감은 법인인감의 대용으로 사용되는 것으로, 본 법인은 이와 관련하여 발생하는 모든 책임을 부담할 것을 확약합니다.</p>
         </div>
 
-        <div class="footer" style="text-align: center; margin-top: 50px;">
-            <p class="display-date">2020년 3월 20일</p>
+        <div style="text-align: center; margin-top: 60px;">
+            <p class="display-date" style="font-size: 18px; font-weight: bold;">2020년 3월 20일</p>
             <br>
-            <p>상호 : 데이지(Daisy)</p>
-            <p>주소 : 서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</p>
-            <div style="display: inline-block; margin-top: 10px;">
-                <span class="seal-rep-container">
-                    대표자 : 성기범 (인)
-                    <div class="seal-style seal-rep"><span>성기범<br>인</span></div>
-                </span>
+            <div style="display: inline-block; text-align: left; margin-top: 20px;">
+                <p>상호 : 데이지(Daisy)</p>
+                <p>주소 : 서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</p>
+                <div style="margin-top: 15px;">
+                    <span class="seal-rep-container">
+                        대표자 : 성기범 (인)
+                        <div class="seal-style seal-rep" style="width: 70px; height: 70px; font-size: 14px; border-width: 4px;"><span>주식회사<br>데이지<br>의인</span></div>
+                    </span>
+                </div>
             </div>
         </div>
 
-        <div style="margin-top: 50px;">
-            <p><span class="display-recipient">ㅇㅇㅇ</span> 귀중</p>
+        <div style="margin-top: 60px; text-align: center;">
+            <p style="font-size: 24px; font-weight: bold; font-family: 'Gungsuh', serif;"><span class="display-recipient">ㅇㅇㅇ</span> 귀중</p>
         </div>
     </div>
 
     <div id="bizDoc" class="document-page">
-        <button class="btn btn-download no-print" onclick="downloadImage('bizDoc', '사업자등록증.png')">이미지 다운로드</button>
+        <button class="btn btn-download no-print" onclick="downloadImage('bizDoc', '사업자등록증_데이지.png')">이미지 다운로드</button>
 
-        <h1>사업자등록증</h1>
-        <div class="doc-type">( 법 인 사 업 자 )</div>
+        <div class="content-wrap">
+            <h1>사업자등록증</h1>
+            <div class="doc-type">( 법 인 사 업 자 )</div>
 
-        <table class="biz-info">
-            <tr>
-                <th>등록번호</th>
-                <td colspan="3" class="display-biznum">123-45-67890</td>
-            </tr>
-            <tr>
-                <th>법인명(단체명)</th>
-                <td>데이지(Daisy)</td>
-                <th>대 표 자</th>
-                <td>성기범</td>
-            </tr>
-            <tr>
-                <th>개업연월일</th>
-                <td class="display-date-short">2020년 03월 20일</td>
-                <th>법인등록번호</th>
-                <td>******-*******</td>
-            </tr>
-            <tr>
-                <th>사업장 소재지</th>
-                <td colspan="3">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
-            </tr>
-            <tr>
-                <th>본점 소재지</th>
-                <td colspan="3">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
-            </tr>
-            <tr>
-                <th rowspan="2">사 업 의   종 류</th>
-                <th>업 태</th>
-                <td colspan="2">서비스업</td>
-            </tr>
-            <tr>
-                <th>종 목</th>
-                <td colspan="2">인터넷 만남 매칭 서비스</td>
-            </tr>
-        </table>
+            <table class="biz-info-table">
+                <tr>
+                    <th>등록번호</th>
+                    <td colspan="3" style="font-size: 22px; color: #333; letter-spacing: 2px;">123-81-67890</td>
+                </tr>
+                <tr>
+                    <th>법인명(단체명)</th>
+                    <td style="font-size: 18px;">데이지(Daisy)</td>
+                    <th style="width: 100px; text-align: center;">대 표 자</th>
+                    <td style="font-size: 18px;">성기범</td>
+                </tr>
+                <tr>
+                    <th>개업연월일</th>
+                    <td class="display-date-short" style="font-size: 18px;">2020년 03월 20일</td>
+                    <th style="text-align: center;">법인등록번호</th>
+                    <td style="font-size: 18px;">110111-1234567</td>
+                </tr>
+                <tr>
+                    <th>사업장 소재지</th>
+                    <td colspan="3" style="font-size: 18px;">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
+                </tr>
+                <tr>
+                    <th>본점 소재지</th>
+                    <td colspan="3" style="font-size: 18px;">서울특별시 강남구 테헤란로 521, 20층 (삼성동, 파르나스타워)</td>
+                </tr>
+                <tr class="merged-row">
+                    <th>사 업 의   종 류</th>
+                    <td colspan="3" style="padding: 0;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr>
+                                <th style="border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; width: 80px; text-align: center; background-color: #f9f9f9;">업 태</th>
+                                <td style="border-bottom: 1px solid #ddd; padding: 10px; font-size: 18px;">서비스업</td>
+                            </tr>
+                            <tr>
+                                <th style="border-right: 1px solid #ddd; text-align: center; background-color: #f9f9f9;">종 목</th>
+                                <td style="padding: 10px; font-size: 18px;">인터넷 만남 매칭 서비스, 데이터베이스 제공</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
 
-        <div class="issue-info">
-            <p>부가가치세법 제8조의 규정에 의하여 사업자등록을 하였음을 증명합니다.</p>
-            <br>
-            <br>
-            <p class="display-date">2020년 3월 20일</p>
-            <br>
-            <div class="tax-office">
-                강 남 세 무 서 장
-                <div class="seal-style official-seal">강남<br>세무서장<br>인</div>
+            <div class="issue-info">
+                <p style="margin-bottom: 40px;">부가가치세법 제8조 및 동법 시행령 제11조의 규정에 의하여<br>사업자등록을 하였음을 증명합니다.</p>
+                
+                <p class="display-date" style="font-size: 22px; font-weight: bold;">2020년 3월 20일</p>
+                
+                <div class="tax-office-seal-group">
+                    <span class="tax-office-name">강 남 세 무 서 장</span>
+                    <div class="official-seal-rect">강남<br>세무서장<br>인</div>
+                </div>
             </div>
         </div>
     </div>
@@ -466,7 +522,6 @@
     function updateDocuments() {
         const dateInput = document.getElementById('docDate').value;
         const recipientInput = document.getElementById('recipientName').value;
-        const bizNumInput = document.getElementById('bizNum').value;
 
         if (!dateInput) {
             alert('날짜를 선택해주세요.');
@@ -490,41 +545,53 @@
             document.querySelectorAll('.display-recipient').forEach(el => el.innerText = recipientInput);
         }
 
-        // 사업자등록증 번호 적용
-        if (bizNumInput) {
-            document.querySelectorAll('.display-biznum').forEach(el => el.innerText = bizNumInput);
-        }
-
-        alert('문서 내용이 업데이트되었습니다. 인쇄 버튼을 눌러 확인하세요.');
+        alert('문서 내용이 업데이트되었습니다. 확인 후 이미지를 다운로드하세요.');
     }
 
-    // 이미지 다운로드 기능 (html2canvas 사용)
+    // 이미지 다운로드 기능 (html2canvas 고해상도 설정)
     function downloadImage(elementId, fileName) {
         const element = document.getElementById(elementId);
+        const originalStyle = element.style.cssText;
         
-        // 다운로드 버튼 등 no-print 요소 숨김 처리 후 캡처
+        // 캡처를 위해 잠시 스타일 변경 (숨김 요소 처리 등)
+        element.classList.add('printing');
         const noPrintElements = element.querySelectorAll('.no-print');
-        noPrintElements.forEach(el => el.style.display = 'none');
+        noPrintElements.forEach(el => el.style.visibility = 'hidden');
+
+        // iOS 등 고해상도 디스플레이 대응을 위한 scale 조정
+        const scale = window.devicePixelRatio > 1 ? window.devicePixelRatio : 2;
 
         html2canvas(element, {
-            scale: 2, // 고해상도
+            scale: scale, 
             useCORS: true,
             logging: false,
-            backgroundColor: '#ffffff' // 배경색 지정
+            backgroundColor: window.getComputedStyle(element).backgroundColor, // 배경색 유지
+            allowTaint: true,
+            scrollY: -window.scrollY // 스크롤 보정
         }).then(canvas => {
-            // 캡처 후 숨김 처리 복구
-            noPrintElements.forEach(el => el.style.display = '');
+            // 스타일 복구
+            element.classList.remove('printing');
+            noPrintElements.forEach(el => el.style.visibility = 'visible');
+            element.style.cssText = originalStyle;
 
-            // 이미지 데이터 URL 생성
-            const image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-            
-            // 가상의 링크를 생성하여 다운로드 실행
+            // 이미지 다운로드 실행
+            const image = canvas.toDataURL("image/png");
             const link = document.createElement('a');
             link.download = fileName;
             link.href = image;
             link.click();
+        }).catch(err => {
+             console.error("이미지 캡처 오류:", err);
+             alert("이미지 생성 중 오류가 발생했습니다. 다시 시도해주세요.");
+             // 오류 발생 시에도 스타일 복구
+             noPrintElements.forEach(el => el.style.visibility = 'visible');
         });
     }
+    
+    // 초기 로드 시 폰트 적용을 위한 지연 실행
+    window.onload = function() {
+        setTimeout(updateDocuments, 500); // 초기값 적용
+    };
 </script>
 
 </body>
